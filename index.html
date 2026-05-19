@@ -524,9 +524,10 @@ footer { background:var(--dark); border-top:1px solid var(--border); padding:3re
             </select>
           </div>
           <div class="form-group"><label>Message *</label><textarea id="en-msg" placeholder="Tell us about your process, production speed, and quality control challenges..."></textarea></div>
-          <button class="btn-primary" onclick="submitForm('en')" style="width:100%;">Send Message</button>
+          <button class="btn-primary" onclick="submitForm('en')" style="width:100%;" id="en-submit">Send Message</button>
           <div class="form-note">🔒 Your information is confidential and will never be shared with third parties.</div>
           <div class="form-success" id="en-success">✅ Thank you! We'll be in touch within 24 hours.</div>
+          <div style="display:none;background:rgba(192,57,74,0.1);border:1px solid #c0394a;border-radius:6px;padding:1.2rem;color:#c0394a;font-size:0.88rem;margin-top:1rem;text-align:center;" id="en-error">❌ Something went wrong. Please try again or email us directly.</div>
         </div>
       </div>
     </div>
@@ -695,9 +696,10 @@ footer { background:var(--dark); border-top:1px solid var(--border); padding:3re
             </select>
           </div>
           <div class="form-group"><label>Mensaje *</label><textarea id="es-msg" placeholder="Cuéntenos sobre su proceso, velocidad de producción y desafíos de control de calidad..."></textarea></div>
-          <button class="btn-primary" onclick="submitForm('es')" style="width:100%;">Enviar Mensaje</button>
+          <button class="btn-primary" onclick="submitForm('es')" style="width:100%;" id="es-submit">Enviar Mensaje</button>
           <div class="form-note">🔒 Su información es confidencial y nunca será compartida con terceros.</div>
           <div class="form-success" id="es-success">✅ ¡Gracias! Nos pondremos en contacto dentro de 24 horas.</div>
+          <div style="display:none;background:rgba(192,57,74,0.1);border:1px solid #c0394a;border-radius:6px;padding:1.2rem;color:#c0394a;font-size:0.88rem;margin-top:1rem;text-align:center;" id="es-error">❌ Algo salió mal. Por favor intente de nuevo o escríbanos directamente.</div>
         </div>
       </div>
     </div>
@@ -757,17 +759,53 @@ window.addEventListener('scroll', () => {
     window.scrollY > 60 ? 'rgba(26,26,31,0.98)' : 'rgba(26,26,31,0.92)';
 });
 
-// Form submit
-function submitForm(lang) {
-  const name = document.getElementById(lang + '-name').value.trim();
-  const email = document.getElementById(lang + '-email').value.trim();
-  const msg = document.getElementById(lang + '-msg').value.trim();
+// Form submit — Formspree
+async function submitForm(lang) {
+  const name    = document.getElementById(lang + '-name').value.trim();
+  const email   = document.getElementById(lang + '-email').value.trim();
+  const company = document.getElementById(lang + '-company').value.trim();
+  const phone   = document.getElementById(lang + '-phone').value.trim();
+  const service = document.getElementById(lang + '-service').value.trim();
+  const msg     = document.getElementById(lang + '-msg').value.trim();
+
   if(!name || !email || !msg) {
     alert(lang === 'es' ? 'Por favor complete los campos requeridos.' : 'Please fill in all required fields.');
     return;
   }
-  document.getElementById(lang + '-success').style.display = 'block';
-  ['name','company','email','phone','msg'].forEach(f => document.getElementById(lang+'-'+f).value = '');
+
+  const btn = document.getElementById(lang + '-submit');
+  btn.disabled = true;
+  btn.textContent = lang === 'es' ? 'Enviando...' : 'Sending...';
+
+  document.getElementById(lang + '-success').style.display = 'none';
+  document.getElementById(lang + '-error').style.display = 'none';
+
+  try {
+    const res = await fetch('https://formspree.io/f/xvzyzkgl', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name, email, company, phone, service, message: msg,
+        language: lang === 'es' ? 'Spanish' : 'English'
+      })
+    });
+
+    if(res.ok) {
+      document.getElementById(lang + '-success').style.display = 'block';
+      ['name','company','email','phone','msg'].forEach(f => {
+        const el = document.getElementById(lang+'-'+f);
+        if(el) el.value = '';
+      });
+      document.getElementById(lang + '-service').value = '';
+    } else {
+      document.getElementById(lang + '-error').style.display = 'block';
+    }
+  } catch(err) {
+    document.getElementById(lang + '-error').style.display = 'block';
+  }
+
+  btn.disabled = false;
+  btn.textContent = lang === 'es' ? 'Enviar Mensaje' : 'Send Message';
 }
 
 // Restore saved language
